@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>氣泡排序視覺化 (Bubble Sort)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #array-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 400px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 800px;
+            border: 1px solid #ddd;
+            background-color: white;
+            padding: 20px 10px 0 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .bar {
+            width: 30px;
+            margin: 0 2px;
+            background-color: #4caf50;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5px;
+            font-size: 14px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease, background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>氣泡排序視覺化 (Bubble Sort)</h1>
+    <div class="controls">
+        <button id="generateBtn" onclick="generateArray()">產生隨機數列</button>
+        <button id="sortBtn" onclick="bubbleSort()">開始氣泡排序</button>
+    </div>
+    <div id="array-container"></div>
+
+    <script>
+        const container = document.getElementById('array-container');
+        const generateBtn = document.getElementById('generateBtn');
+        const sortBtn = document.getElementById('sortBtn');
+        let array = [];
+        const delayTime = 300; // 動畫速度 (毫秒)，數字越小越快
+
+        // 建立延遲以產生動畫效果
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 產生隨機數列並畫出長條圖
+        function generateArray() {
+            container.innerHTML = '';
+            array = [];
+            for (let i = 0; i < 20; i++) {
+                // 產生 10~100 的隨機數字
+                const value = Math.floor(Math.random() * 90) + 10;
+                array.push(value);
+
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 3}px`; // 乘 3 讓高度更明顯
+                bar.innerText = value;
+                container.appendChild(bar);
+            }
+        }
+
+        // 氣泡排序主要邏輯
+        async function bubbleSort() {
+            generateBtn.disabled = true;
+            sortBtn.disabled = true;
+
+            let bars = document.querySelectorAll('.bar');
+            let len = array.length;
+
+            for (let i = 0; i < len; i++) {
+                for (let j = 0; j < len - i - 1; j++) {
+                    // 標記正在比較的兩個數字 (紅色)
+                    bars[j].style.backgroundColor = '#f44336';
+                    bars[j + 1].style.backgroundColor = '#f44336';
+
+                    await sleep(delayTime);
+
+                    // 如果左邊大於右邊，則交換
+                    if (array[j] > array[j + 1]) {
+                        // 交換陣列數值
+                        let temp = array[j];
+                        array[j] = array[j + 1];
+                        array[j + 1] = temp;
+
+                        // 交換畫面高度與文字
+                        bars[j].style.height = `${array[j] * 3}px`;
+                        bars[j].innerText = array[j];
+                        bars[j + 1].style.height = `${array[j + 1] * 3}px`;
+                        bars[j + 1].innerText = array[j + 1];
+                    }
+
+                    // 比較完恢復原本顏色 (綠色)
+                    bars[j].style.backgroundColor = '#4caf50';
+                    bars[j + 1].style.backgroundColor = '#4caf50';
+                }
+                // 每回合最大的數字已排到最後面，標記為完成 (藍色)
+                bars[len - i - 1].style.backgroundColor = '#2196f3';
+            }
+
+            generateBtn.disabled = false;
+            sortBtn.disabled = false;
+        }
+
+        // 網頁開啟時，自動先產生一組數列
+        window.onload = generateArray;
+    </script>
+</body>
+</html>
