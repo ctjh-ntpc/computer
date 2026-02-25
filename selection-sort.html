@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選擇排序視覺化 (Selection Sort)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        
+        #pauseBtn { background-color: #ff9800; display: none; }
+        #pauseBtn:hover { background-color: #e68a00; }
+        #pauseBtn.paused { background-color: #4caf50; }
+        #pauseBtn.paused:hover { background-color: #45a049; }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .speed-control label { font-size: 16px; margin: 0 10px; color: #555; font-weight: bold; }
+        input[type="range"] { cursor: pointer; }
+
+        /* 狀態說明區 */
+        #status-board {
+            margin: 10px auto 20px auto;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            width: 80%;
+            max-width: 800px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            min-height: 25px;
+        }
+        .legend {
+            display: inline-block;
+            margin: 0 10px;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .legend span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+
+        #array-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 400px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 800px;
+            border: 1px solid #ddd;
+            background-color: white;
+            padding: 20px 10px 0 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .bar {
+            width: 30px;
+            margin: 0 2px;
+            background-color: #ccc; /* 預設為灰色 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5px;
+            font-size: 14px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease, background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>選擇排序視覺化 (Selection Sort)</h1>
+    <p class="subtitle">探照燈掃描法：全場找最小，最後才交換</p>
+    
+    <div class="controls">
+        <button id="generateBtn" onclick="generateArray()">產生隨機數列</button>
+        <button id="sortBtn" onclick="selectionSort()">開始選擇排序</button>
+        <button id="pauseBtn" onclick="togglePause()">暫停</button>
+        
+        <div class="speed-control">
+            <label for="speedSlider">慢</label>
+            <input type="range" id="speedSlider" min="1" max="10" value="3">
+            <label for="speedSlider">快</label>
+        </div>
+    </div>
+
+    <div id="status-board">
+        <div id="status-text">請點擊開始排序</div>
+        <div style="margin-top: 10px;">
+            <span class="legend"><span style="background-color: #9c27b0;"></span>探照燈(掃描中)</span>
+            <span class="legend"><span style="background-color: #ffeb3b; border:1px solid #999;"></span>目前最小值</span>
+            <span class="legend"><span style="background-color: #4caf50;"></span>準備要交換的位置</span>
+            <span class="legend"><span style="background-color: #2196f3;"></span>已排序完成</span>
+        </div>
+    </div>
+
+    <div id="array-container"></div>
+
+    <script>
+        const container = document.getElementById('array-container');
+        const generateBtn = document.getElementById('generateBtn');
+        const sortBtn = document.getElementById('sortBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const statusText = document.getElementById('status-text');
+        
+        let array = [];
+        let isPaused = false;
+        let resolvePause = null;
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+        function getDelayTime() { return 2200 - (parseInt(speedSlider.value) * 200); }
+
+        async function checkPause() {
+            if (isPaused) { await new Promise(resolve => { resolvePause = resolve; }); }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseBtn.innerText = '繼續';
+                pauseBtn.classList.add('paused');
+            } else {
+                pauseBtn.innerText = '暫停';
+                pauseBtn.classList.remove('paused');
+                if (resolvePause) { resolvePause(); resolvePause = null; }
+            }
+        }
+
+        function generateArray() {
+            container.innerHTML = '';
+            array = [];
+            isPaused = false;
+            pauseBtn.style.display = 'none';
+            pauseBtn.innerText = '暫停';
+            pauseBtn.classList.remove('paused');
+            statusText.innerText = '數列已就緒';
+            
+            for (let i = 0; i < 20; i++) {
+                const value = Math.floor(Math.random() * 90) + 10;
+                array.push(value);
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 3}px`;
+                bar.innerText = value;
+                container.appendChild(bar);
+            }
+        }
+
+        async function selectionSort() {
+            generateBtn.disabled = true;
+            sortBtn.disabled = true;
+            pauseBtn.style.display = 'inline-block';
+
+            let bars = document.querySelectorAll('.bar');
+            let len = array.length;
+
+            for (let i = 0; i < len - 1; i++) {
+                // 第 i 個位置是「準備要交換的起點」，先標記為綠色
+                let minIndex = i;
+                bars[i].style.backgroundColor = '#4caf50'; 
+                statusText.innerText = `第 ${i+1} 回合：目前基準位置是 ${array[i]}，開始尋找更小的數字...`;
+                
+                // 將 minIndex 標記為目前最小值 (黃色)，文字改為深色才看得清楚
+                bars[minIndex].style.backgroundColor = '#ffeb3b';
+                bars[minIndex].style.color = '#333';
+                await sleep(getDelayTime() / 2);
+
+                for (let j = i + 1; j < len; j++) {
+                    await checkPause();
+                    
+                    // 探照燈 (紫色) 掃描下一個數字
+                    bars[j].style.backgroundColor = '#9c27b0';
+                    await sleep(getDelayTime());
+                    await checkPause();
+
+                    // 如果找到更小的數字，更新 minIndex
+                    if (array[j] < array[minIndex]) {
+                        statusText.innerText = `發現更小的數字 ${array[j]}！取代原本的最小值。`;
+                        // 原本的最小值恢復顏色 (如果是起點就變回綠色，否則變回灰色)
+                        bars[minIndex].style.backgroundColor = (minIndex === i) ? '#4caf50' : '#ccc';
+                        bars[minIndex].style.color = 'white';
+                        
+                        // 新的最小值標記為黃色
+                        minIndex = j;
+                        bars[minIndex].style.backgroundColor = '#ffeb3b';
+                        bars[minIndex].style.color = '#333';
+                    } else {
+                        // 沒找到更小的，探照燈離開，恢復灰色
+                        bars[j].style.backgroundColor = '#ccc';
+                    }
+                }
+
+                statusText.innerText = `掃描結束，本回合最小值是 ${array[minIndex]}。準備進行交換！`;
+                await sleep(getDelayTime());
+                await checkPause();
+
+                // 只有當找到的最小值不是原本的起點時，才需要交換
+                if (minIndex !== i) {
+                    let temp = array[i];
+                    array[i] = array[minIndex];
+                    array[minIndex] = temp;
+
+                    bars[i].style.height = `${array[i] * 3}px`;
+                    bars[i].innerText = array[i];
+                    bars[minIndex].style.height = `${array[minIndex] * 3}px`;
+                    bars[minIndex].innerText = array[minIndex];
+                }
+
+                // 這一回合結束，第 i 個位置已經排好了，標記為完成 (藍色)
+                bars[i].style.backgroundColor = '#2196f3';
+                bars[i].style.color = 'white';
+                // 如果剛剛有交換，另一個被換過去的數字也要恢復成灰色
+                if (minIndex !== i) {
+                    bars[minIndex].style.backgroundColor = '#ccc';
+                    bars[minIndex].style.color = 'white';
+                }
+            }
+            
+            // 最後一個數字自動完成
+            bars[len - 1].style.backgroundColor = '#2196f3';
+            statusText.innerText = '排序完成！';
+            
+            generateBtn.disabled = false;
+            sortBtn.disabled = false;
+            pauseBtn.style.display = 'none';
+        }
+
+        window.onload = generateArray;
+    </script>
+</body>
+</html>

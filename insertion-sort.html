@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>插入排序視覺化 (Insertion Sort)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        
+        #pauseBtn { background-color: #ff9800; display: none; }
+        #pauseBtn:hover { background-color: #e68a00; }
+        #pauseBtn.paused { background-color: #4caf50; }
+        #pauseBtn.paused:hover { background-color: #45a049; }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .speed-control label { font-size: 16px; margin: 0 10px; color: #555; font-weight: bold; }
+        input[type="range"] { cursor: pointer; }
+
+        /* 狀態說明與暫存區 (temp) */
+        #status-board {
+            margin: 10px auto 20px auto;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            width: 80%;
+            max-width: 800px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .legend {
+            display: inline-block;
+            margin: 0 10px;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .legend span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+        #temp-display {
+            margin-top: 15px;
+            font-size: 22px;
+            color: #d32f2f;
+        }
+        #temp-value {
+            display: inline-block;
+            padding: 4px 15px;
+            border: 2px solid #d32f2f;
+            border-radius: 5px;
+            background-color: #ffebee;
+            min-width: 30px;
+        }
+
+        #array-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 400px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 800px;
+            border: 1px solid #ddd;
+            background-color: white;
+            padding: 20px 10px 0 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .bar {
+            width: 30px;
+            margin: 0 2px;
+            background-color: #ccc;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 5px;
+            font-size: 14px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.2s ease; /* 調整為 0.2 秒讓平移看起來更俐落 */
+            box-sizing: border-box;
+        }
+
+        /* 拔出後留下的空位樣式 */
+        .empty-slot {
+            background-color: transparent !important;
+            border: 2px dashed #999;
+            color: transparent !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>插入排序視覺化 (Insertion Sort)</h1>
+    <p class="subtitle">拔出與平移法：維持左側的排序，將新數字安插進正確空位</p>
+    
+    <div class="controls">
+        <button id="generateBtn" onclick="generateArray()">產生隨機數列</button>
+        <button id="sortBtn" onclick="insertionSort()">開始插入排序</button>
+        <button id="pauseBtn" onclick="togglePause()">暫停</button>
+        
+        <div class="speed-control">
+            <label for="speedSlider">慢</label>
+            <input type="range" id="speedSlider" min="1" max="10" value="3">
+            <label for="speedSlider">快</label>
+        </div>
+    </div>
+
+    <div id="status-board">
+        <div id="status-text">請點擊開始排序</div>
+        <div style="margin-top: 10px;">
+            <span class="legend"><span style="background-color: #2196f3;"></span>左側已排序區</span>
+            <span class="legend"><span style="background-color: #9c27b0;"></span>掃描比較中</span>
+            <span class="legend"><span style="border: 2px dashed #999; background: transparent;"></span>陣列空位</span>
+        </div>
+        <div id="temp-display">
+            拔出的數字 (temp變數) : <span id="temp-value">無</span>
+        </div>
+    </div>
+
+    <div id="array-container"></div>
+
+    <script>
+        const container = document.getElementById('array-container');
+        const generateBtn = document.getElementById('generateBtn');
+        const sortBtn = document.getElementById('sortBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const statusText = document.getElementById('status-text');
+        const tempValueDisplay = document.getElementById('temp-value');
+        
+        let array = [];
+        let isPaused = false;
+        let resolvePause = null;
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+        function getDelayTime() { return 2200 - (parseInt(speedSlider.value) * 200); }
+
+        async function checkPause() {
+            if (isPaused) { await new Promise(resolve => { resolvePause = resolve; }); }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseBtn.innerText = '繼續';
+                pauseBtn.classList.add('paused');
+            } else {
+                pauseBtn.innerText = '暫停';
+                pauseBtn.classList.remove('paused');
+                if (resolvePause) { resolvePause(); resolvePause = null; }
+            }
+        }
+
+        function generateArray() {
+            container.innerHTML = '';
+            array = [];
+            isPaused = false;
+            pauseBtn.style.display = 'none';
+            pauseBtn.innerText = '暫停';
+            pauseBtn.classList.remove('paused');
+            statusText.innerText = '數列已就緒';
+            tempValueDisplay.innerText = '無';
+            
+            for (let i = 0; i < 20; i++) {
+                const value = Math.floor(Math.random() * 90) + 10;
+                array.push(value);
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 3}px`;
+                bar.innerText = value;
+                container.appendChild(bar);
+            }
+        }
+
+        async function insertionSort() {
+            generateBtn.disabled = true;
+            sortBtn.disabled = true;
+            pauseBtn.style.display = 'inline-block';
+
+            let bars = document.querySelectorAll('.bar');
+            let len = array.length;
+
+            // 第一個元素預設是已排序的
+            bars[0].style.backgroundColor = '#2196f3';
+
+            for (let i = 1; i < len; i++) {
+                let key = array[i];
+                let j = i - 1;
+
+                await checkPause();
+
+                // 1. 將目前數字存入 temp (畫面上拔出)
+                statusText.innerText = `第 ${i} 回合：將 ${key} 存入 temp 變數，準備往左尋找位置...`;
+                tempValueDisplay.innerText = key;
+                
+                // 讓原位置變成虛線空位，但保留高度以撐住空間
+                bars[i].classList.add('empty-slot');
+                
+                await sleep(getDelayTime());
+                await checkPause();
+
+                // 2. 往左掃描與平移
+                while (j >= 0) {
+                    bars[j].style.backgroundColor = '#9c27b0'; // 紫色：正在比較
+                    statusText.innerText = `與左邊的 ${array[j]} 進行比較...`;
+                    
+                    await sleep(getDelayTime() / 2);
+                    await checkPause();
+
+                    if (array[j] > key) {
+                        statusText.innerText = `${array[j]} 大於 temp (${key})，將 ${array[j]} 往右平移！`;
+                        
+                        // 陣列數值與長條圖高度往右複製
+                        array[j + 1] = array[j];
+                        bars[j + 1].style.height = `${array[j + 1] * 3}px`;
+                        bars[j + 1].innerText = array[j + 1];
+                        bars[j + 1].classList.remove('empty-slot');
+                        bars[j + 1].style.backgroundColor = '#2196f3'; // 恢復已排序顏色
+                        
+                        // j 的位置變成新的空位
+                        bars[j].classList.add('empty-slot');
+                        // 保持空位高度等於 key 的高度，視覺上比較順
+                        bars[j].style.height = `${key * 3}px`;
+                        
+                        await sleep(getDelayTime());
+                        await checkPause();
+                        j--;
+                    } else {
+                        statusText.innerText = `${array[j]} 小於等於 ${key}，停止平移，找到插入空位了！`;
+                        bars[j].style.backgroundColor = '#2196f3'; // 恢復已排序顏色
+                        await sleep(getDelayTime() / 2);
+                        await checkPause();
+                        break;
+                    }
+                }
+
+                // 3. 將 temp 插入空位
+                statusText.innerText = `將 temp (${key}) 插入到空位中！`;
+                array[j + 1] = key;
+                bars[j + 1].style.height = `${key * 3}px`;
+                bars[j + 1].innerText = key;
+                bars[j + 1].classList.remove('empty-slot');
+                bars[j + 1].style.backgroundColor = '#4caf50'; // 綠色提示插入完成
+                tempValueDisplay.innerText = '無';
+                
+                await sleep(getDelayTime());
+                await checkPause();
+
+                // 恢復已排序的藍色
+                for(let k = 0; k <= i; k++) {
+                    bars[k].style.backgroundColor = '#2196f3';
+                }
+            }
+            
+            statusText.innerText = '排序完成！';
+            generateBtn.disabled = false;
+            sortBtn.disabled = false;
+            pauseBtn.style.display = 'none';
+        }
+
+        window.onload = generateArray;
+    </script>
+</body>
+</html>
