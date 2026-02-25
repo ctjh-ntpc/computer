@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>氣泡排序天平：動畫完成版</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f7fafc; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
+        .container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 650px; text-align: center; position: relative; }
+        
+        /* 天平視覺 */
+        .scale-area { height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; margin: 20px 0; }
+        .scale-bar { width: 300px; height: 10px; background: #cbd5e0; border-radius: 5px; position: relative; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: center; z-index: 5; }
+        .scale-base { width: 20px; height: 60px; background: #4a5568; border-radius: 4px; }
+        .slot { position: absolute; bottom: 10px; width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; }
+        .pan { width: 70px; height: 8px; background: #edf2f7; border: 2px solid #a0aec0; border-radius: 4px; position: absolute; bottom: -10px; }
+
+        /* 物件列表樣式 */
+        .item-row { display: flex; justify-content: center; gap: 12px; margin: 15px 0; min-height: 85px; align-items: flex-start; }
+        .item-container { display: flex; flex-direction: column; align-items: center; width: 55px; }
+        .item { 
+            width: 50px; height: 50px; border-radius: 12px; 
+            display: flex; justify-content: center; align-items: center; 
+            color: white; font-weight: bold; cursor: pointer; 
+            transition: 0.3s; font-size: 14px; position: relative; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .weight-tag { font-size: 12px; color: #4a5568; margin-top: 5px; font-weight: bold; min-height: 18px; }
+
+        /* 狀態樣式 */
+        .item.active-in-scale { opacity: 0.3; cursor: default; }
+        .item.locked { cursor: not-allowed; filter: saturate(0.3); opacity: 0.6; }
+        .item.is-sorted { border: 4px solid #48bb78; }
+        .item.is-sorted::after { 
+            content: "✓"; position: absolute; top: -12px; right: -12px; 
+            background: #48bb78; border-radius: 50%; width: 20px; height: 20px; 
+            font-size: 12px; line-height: 20px; color: white;
+        }
+
+        /* 勝利動畫：跳動 */
+        @keyframes victoryJump {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .victory-dance { animation: victoryJump 0.5s ease-in-out 3; }
+
+        /* 碎紙動畫 */
+        .confetti { position: fixed; width: 10px; height: 10px; z-index: 100; pointer-events: none; }
+
+        #msg { height: 40px; margin: 10px 0; font-weight: bold; color: #2d3748; }
+        .error-msg { color: #e53e3e !important; animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+        button { padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: #4299e1; color: white; }
+        button:disabled { background: #e2e8f0; color: #a0aec0; cursor: not-allowed; }
+        .btn-swp { background: #ed8936; }
+        .btn-finish { background: #48bb78; }
+        .label { text-align: left; font-size: 13px; color: #718096; border-left: 3px solid #4299e1; padding-left: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>氣泡排序天平模擬器</h1>
+    
+    <div class="scale-area">
+        <div id="scaleBar" class="scale-bar">
+            <div id="lSlot" class="slot" style="left:5px;"></div>
+            <div id="rSlot" class="slot" style="right:5px;"></div>
+            <div class="pan" style="left:0;"></div>
+            <div class="pan" style="right:0;"></div>
+        </div>
+        <div class="scale-base"></div>
+    </div>
+
+    <div id="msg">請點選兩個相鄰的方塊放入天平</div>
+
+    <div class="label">1. 操作區 (點擊方塊)</div>
+    <div id="opRow" class="item-row"></div>
+
+    <div class="label">2. 目前排列圖示 (完成後顯示重量)</div>
+    <div id="currRow" class="item-row"></div>
+
+    <div class="label">3. 初始排列</div>
+    <div id="initRow" class="item-row"></div>
+
+    <div class="btn-group">
+        <button onclick="doCompare()">比較重量</button>
+        <button id="swpBtn" class="btn-swp" onclick="validateAndSwap()" disabled>交換位置</button>
+        <button id="finishBtn" class="btn-finish" onclick="validateRound()">完成本輪</button>
+        <button onclick="clearScale()">清空天平</button>
+        <button style="background:#f56565" onclick="location.reload()">重新打亂</button>
+    </div>
+</div>
+
+<script>
+    const colors = [
+        { name: '紅', hex: '#f56565' }, { name: '藍', hex: '#4299e1' },
+        { name: '綠', hex: '#48bb78' }, { name: '黃', hex: '#ecc94b' },
+        { name: '紫', hex: '#9f7aea' }
+    ];
+
+    let currData = [], initData = [], selected = [], rounds = 0;
+
+    function init() {
+        let weights = [];
+        while(weights.length < 5) {
+            let w = Math.floor(Math.random() * 91) + 10;
+            if(!weights.includes(w)) weights.push(w);
+        }
+        currData = colors.map((c, i) => ({ ...c, w: weights[i] }));
+        currData.sort(() => Math.random() - 0.5);
+        initData = [...currData];
+        
+        const row = document.getElementById('initRow');
+        initData.forEach(d => {
+            row.innerHTML += `<div class="item-container"><div class="item" style="background:${d.hex}">${d.name}</div><div class="weight-tag"></div></div>`;
+        });
+        refresh();
+    }
+
+    function refresh() {
+        const op = document.getElementById('opRow');
+        const cu = document.getElementById('currRow');
+        op.innerHTML = ''; cu.innerHTML = '';
+        const sortedBoundary = currData.length - rounds;
+
+        currData.forEach((d, i) => {
+            const isSorted = i >= sortedBoundary;
+            const isSelected = selected.includes(i);
+
+            // 操作區
+            const opItem = `<div class="item-container">
+                <div class="item ${isSelected ? 'active-in-scale' : ''} ${isSorted ? 'locked' : ''}" 
+                     style="background:${d.hex}" 
+                     onclick="${isSorted ? '' : `toggle(${i})`}">
+                     ${d.name}
+                </div>
+                <div class="weight-tag"></div>
+            </div>`;
+            op.innerHTML += opItem;
+
+            // 排列圖示
+            const weightText = isSorted ? `${d.w}g` : '';
+            const cuItem = `<div class="item-container">
+                <div class="item ${isSorted ? 'is-sorted' : ''}" style="background:${d.hex}" id="sorted-item-${i}">
+                    ${d.name}
+                </div>
+                <div class="weight-tag">${weightText}</div>
+            </div>`;
+            cu.innerHTML += cuItem;
+        });
+        updateScaleUI();
+    }
+
+    function toggle(idx) {
+        if(selected.includes(idx)) selected = selected.filter(x => x !== idx);
+        else if(selected.length < 2) {
+            if(selected.length === 1 && Math.abs(selected[0]-idx) !== 1) {
+                showMsg("❌ 偵錯：必須選取「相鄰」的物件！", true);
+                return;
+            }
+            selected.push(idx);
+            selected.sort((a,b)=>a-b);
+        }
+        refresh();
+    }
+
+    function updateScaleUI() {
+        const lSlot = document.getElementById('lSlot'), rSlot = document.getElementById('rSlot');
+        lSlot.innerHTML = ''; rSlot.innerHTML = '';
+        if(selected[0] !== undefined) lSlot.innerHTML = `<div class="item" style="background:${currData[selected[0]].hex}">${currData[selected[0]].name}</div>`;
+        if(selected[1] !== undefined) rSlot.innerHTML = `<div class="item" style="background:${currData[selected[1]].hex}">${currData[selected[1]].name}</div>`;
+        document.getElementById('scaleBar').style.transform = 'rotate(0deg)';
+        document.getElementById('swpBtn').disabled = true;
+    }
+
+    function doCompare() {
+        if(selected.length !== 2) return;
+        const wL = currData[selected[0]].w, wR = currData[selected[1]].w;
+        const bar = document.getElementById('scaleBar');
+        if(wL > wR) {
+            bar.style.transform = 'rotate(-15deg)';
+            showMsg(`⚖️ 左邊較重 (${wL} > ${wR})，請交換！`);
+            document.getElementById('swpBtn').disabled = false;
+        } else {
+            bar.style.transform = 'rotate(15deg)';
+            showMsg(`⚖️ 右邊較重 (${wR} > ${wL})，順序正確。`);
+        }
+    }
+
+    function validateAndSwap() {
+        const [i, j] = selected;
+        [currData[i], currData[j]] = [currData[j], currData[i]];
+        selected = [];
+        showMsg("✅ 已交換位置！");
+        refresh();
+    }
+
+    function validateRound() {
+        const unsortedEndIdx = currData.length - rounds - 1;
+        const maxW = Math.max(...currData.slice(0, unsortedEndIdx + 1).map(x => x.w));
+        if(currData[unsortedEndIdx].w !== maxW) {
+            showMsg(`❌ 偵錯：最大值 (${maxW}g) 還沒移到末端！`, true);
+            return;
+        }
+        rounds++;
+        selected = [];
+        showMsg(`🚩 成功！鎖定目前最大值 ${currData[unsortedEndIdx].w}g。`);
+        refresh();
+        if(rounds === 4) playVictoryAnimation();
+    }
+
+    // --- 勝利動畫邏輯 ---
+    function playVictoryAnimation() {
+        showMsg("🎊 完美！你完成了氣泡排序！");
+        
+        // 1. 方塊跳動
+        const allSorted = document.querySelectorAll('#currRow .item');
+        allSorted.forEach((el, i) => {
+            setTimeout(() => el.classList.add('victory-dance'), i * 100);
+        });
+
+        // 2. 噴發碎紙
+        for(let i=0; i<50; i++) {
+            createConfetti();
+        }
+    }
+
+    function createConfetti() {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.backgroundColor = ['#f56565','#4299e1','#48bb78','#ecc94b','#9f7aea'][Math.floor(Math.random()*5)];
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.top = '-10px';
+        c.style.transform = `rotate(${Math.random()*360}deg)`;
+        document.body.appendChild(c);
+
+        const animation = c.animate([
+            { transform: `translate3d(0,0,0) rotate(0deg)`, opacity: 1 },
+            { transform: `translate3d(${(Math.random()-0.5)*200}px, 100vh, 0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+        ], {
+            duration: 2000 + Math.random() * 2000,
+            easing: 'cubic-bezier(0, .9, .57, 1)'
+        });
+        animation.onfinish = () => c.remove();
+    }
+
+    function showMsg(m, isErr=false) {
+        const el = document.getElementById('msg');
+        el.innerText = m;
+        el.className = isErr ? 'error-msg' : '';
+    }
+
+    function clearScale() { selected = []; refresh(); }
+
+    init();
+</script>
+</body>
+</html>
