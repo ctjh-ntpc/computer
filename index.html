@@ -24,8 +24,10 @@
         .link-container {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
+            gap: 25px;
+            flex-wrap: wrap; 
+            max-width: 1000px;
+            margin: 0 auto;
         }
         /* 導覽卡片的樣式 */
         .nav-card {
@@ -34,7 +36,7 @@
             border-radius: 12px;
             padding: 30px 20px;
             width: 260px;
-            text-decoration: none; /* 去除超連結底線 */
+            text-decoration: none; 
             color: #333;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
@@ -47,7 +49,7 @@
         }
         .nav-card h2 {
             margin-top: 0;
-            font-size: 24px;
+            font-size: 22px;
             color: #007bff;
         }
         .nav-card .icon {
@@ -58,7 +60,7 @@
         .nav-card p {
             font-size: 15px;
             color: #555;
-            line-height: 1.5;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -68,19 +70,24 @@
     <p class="subtitle">請選擇您要使用的視覺化教學工具：</p>
 
     <div class="link-container">
+        <a href="BubbleSort-bar-1.html" class="nav-card">
+            <span class="icon">📊</span>
+            <h2>長條圖 (慢速固定版)</h2>
+            <p>固定每次比較停留 1 秒，並可隨時暫停。適合剛開始一步一步帶學生看邏輯。</p>
+        </a>
+
         <a href="BubbleSort-bar-2.html" class="nav-card">
             <span class="icon">📊</span>
-            <h2>長條圖版</h2>
-            <p>包含暫停與動態調速功能，適合完整展示大數列的排序與交換過程。</p>
+            <h2>長條圖 (可調速版)</h2>
+            <p>包含動態調速滑桿與暫停功能。適合完整展示大數列，並由老師隨時控制節奏。</p>
         </a>
 
         <a href="BubbleSort-scale.html" class="nav-card">
             <span class="icon">⚖️</span>
             <h2>天平秤重版</h2>
-            <p>透過天平傾斜動畫，幫助直覺理解「兩兩比較、重的往右沉」的核心概念。</p>
+            <p>透過天平傾斜動畫，幫助學生直覺理解「兩兩比較、重的往右沉」的核心概念。</p>
         </a>
     </div>
 
 </body>
 </html>
-
