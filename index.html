@@ -3,33 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>氣泡排序教學演示</title>
+    <title>排序法教學演示大廳</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
-            text-align: center;
             margin: 0;
-            padding: 50px 20px;
-        }
-        h1 {
+            padding: 40px 20px;
             color: #333;
-            margin-bottom: 10px;
         }
-        .subtitle {
-            color: #666;
+        .main-title {
+            text-align: center;
+            font-size: 36px;
             margin-bottom: 40px;
-            font-size: 18px;
+            color: #2c3e50;
+            letter-spacing: 2px;
         }
+        
+        /* 每個排序法的大區塊 */
+        .algo-section {
+            background-color: white;
+            max-width: 1000px;
+            margin: 0 auto 40px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        /* 區塊標題與說明 */
+        .algo-title {
+            margin-top: 0;
+            font-size: 26px;
+            border-bottom: 3px solid #ccc;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        .algo-desc {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #ccc;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* 恢復原本置中的卡片排列方式 */
         .link-container {
             display: flex;
             justify-content: center;
             gap: 25px;
-            flex-wrap: wrap; 
-            max-width: 1000px;
-            margin: 0 auto;
+            flex-wrap: wrap;
         }
-        /* 導覽卡片的樣式 */
+
+        /* 恢復原本大圖示的導覽卡片樣式 */
         .nav-card {
             background-color: white;
             border: 2px solid #ddd;
@@ -38,57 +66,93 @@
             width: 260px;
             text-decoration: none; 
             color: #333;
+            text-align: center; /* 讓文字與圖示置中 */
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
         }
-        /* 滑鼠游標移過去的動畫效果 */
         .nav-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 12px 20px rgba(0,0,0,0.15);
-            border-color: #007bff;
         }
-        .nav-card h2 {
-            margin-top: 0;
-            font-size: 22px;
-            color: #007bff;
-        }
+        
+        /* 恢復大圖示設定 */
         .nav-card .icon {
             font-size: 50px;
             display: block;
             margin-bottom: 15px;
         }
+        
+        .nav-card h3 {
+            margin-top: 0;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
         .nav-card p {
-            font-size: 15px;
-            color: #555;
+            font-size: 14px;
+            color: #666;
             line-height: 1.6;
+            margin-bottom: 0;
         }
     </style>
 </head>
 <body>
 
-    <h1>氣泡排序 (Bubble Sort) 教學演示區</h1>
-    <p class="subtitle">請選擇您要使用的視覺化教學工具：</p>
+    <h1 class="main-title">排序法 (Sorting Algorithms)</h1>
 
-    <div class="link-container">
-        <a href="BubbleSort-bar-2.html" class="nav-card">
-            <span class="icon">📊</span>
-            <h2>長條圖 (慢速固定版)</h2>
-            <p>固定每次比較停留 1 秒，並可隨時暫停。適合剛開始一步一步帶學生看邏輯。</p>
-        </a>
+    <div class="algo-section">
+        <h2 class="algo-title" style="border-bottom-color: #007bff; color: #007bff;">一、氣泡排序 (Bubble Sort)</h2>
+        <div class="algo-desc" style="border-left-color: #007bff;">
+            <strong>核心概念：</strong>相鄰兩個數字不斷兩兩比較，如果左邊比右邊大就交換位置。每一回合都會把目前最大的數字，像氣泡一樣「推」到數列的最末端。特點是交換動作非常頻繁。
+        </div>
+        
+        <div class="link-container">
+            <a href="BubbleSort-bar-2.html" class="nav-card" style="border-color: #bbd8f2;">
+                <span class="icon">📊</span>
+                <h3 style="color: #007bff;">長條圖 (慢速固定版)</h3>
+                <p>固定每次比較停留 1 秒，並可隨時暫停。適合剛開始一步一步帶學生看邏輯。</p>
+            </a>
+            <a href="BubbleSort-bar-1.html" class="nav-card" style="border-color: #bbd8f2;">
+                <span class="icon">📊</span>
+                <h3 style="color: #007bff;">長條圖 (可調速版)</h3>
+                <p>包含動態調速滑桿與暫停功能。適合完整展示大數列，隨時控制教學節奏。</p>
+            </a>
+            <a href="BubbleSort-scale.html" class="nav-card" style="border-color: #bbd8f2;">
+                <span class="icon">⚖️</span>
+                <h3 style="color: #007bff;">天平秤重版</h3>
+                <p>透過天平傾斜動畫，幫助學生直覺理解「重的往右沉」的核心概念。</p>
+            </a>
+        </div>
+    </div>
 
-        <a href="BubbleSort-bar-1.html" class="nav-card">
-            <span class="icon">📊</span>
-            <h2>長條圖 (可調速版)</h2>
-            <p>包含動態調速滑桿與暫停功能。適合完整展示大數列，並由老師隨時控制節奏。</p>
-        </a>
+    <div class="algo-section">
+        <h2 class="algo-title" style="border-bottom-color: #9c27b0; color: #9c27b0;">二、選擇排序 (Selection Sort)</h2>
+        <div class="algo-desc" style="border-left-color: #9c27b0;">
+            <strong>核心概念：</strong>全場掃描尋找數列中的「最小值」，確認目標後，才將它與最左邊尚未排好的位置進行交換。每回合只做「一次」位置交換，謀定而後動。
+        </div>
+        
+        <div class="link-container">
+            <a href="selection-sort.html" class="nav-card" style="border-color: #e1bee7;">
+                <span class="icon">🔦</span>
+                <h3 style="color: #9c27b0;">探照燈版</h3>
+                <p>全場掃描尋找最小值，每回合只交換一次。與氣泡排序形成強烈對比。</p>
+            </a>
+        </div>
+    </div>
 
-        <a href="BubbleSort-scale.html" class="nav-card">
-            <span class="icon">⚖️</span>
-            <h2>天平秤重版</h2>
-            <p>透過天平傾斜動畫，幫助學生直覺理解「兩兩比較、重的往右沉」的核心概念。</p>
-        </a>
+    <div class="algo-section">
+        <h2 class="algo-title" style="border-bottom-color: #d32f2f; color: #d32f2f;">三、插入排序 (Insertion Sort)</h2>
+        <div class="algo-desc" style="border-left-color: #d32f2f;">
+            <strong>核心概念：</strong>將數列分為「左側已排序」與「右側未排序」。每次從右側拔出一個數字存入暫存區 (temp)，往左尋找合適的空位，將擋路的數字往右推，最後安插進去。
+        </div>
+        
+        <div class="link-container">
+            <a href="insertion-sort.html" class="nav-card" style="border-color: #ffcdd2;">
+                <span class="icon">📥</span>
+                <h3 style="color: #d32f2f;">拔出平移版</h3>
+                <p>展示將數字存入 temp 變數，大數字往右擠出空位後，再精準安插的過程。</p>
+            </a>
+        </div>
     </div>
 
 </body>
 </html>
-
