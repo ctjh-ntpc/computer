@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖片數位化教學：空間採樣與色彩量化 (統一註記版)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f7f9;
+            line-height: 1.6;
+        }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; font-size: 0.9em; }
+        .canvas-container { text-align: center; }
+        canvas {
+            border: 2px solid #ecf0f1;
+            max-width: 100%;
+            height: auto;
+            image-rendering: pixelated; 
+            background-color: #ffffff;
+        }
+        .canvas-label { font-weight: bold; margin-bottom: 10px; color: #34495e; display: block; background: #ebf2f7; padding: 5px; border-radius: 4px; }
+        .controls { display: flex; flex-direction: column; gap: 20px; }
+        .control-group { border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #2c3e50; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
+        .checkbox-label input { margin-right: 10px; transform: scale(1.2); }
+        .value-display { color: #e67e22; font-weight: bold; font-size: 1.2em; }
+        #uploadBtn {
+            background-color: #27ae60; color: white; border: none; padding: 12px;
+            font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; margin: 10px 0; font-weight: bold;
+        }
+        #compareBtn {
+            background-color: #3498db; color: white; border: none; padding: 12px;
+            border-radius: 4px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold;
+        }
+        .warning-text {
+            color: #c0392b; font-size: 0.85em; margin-top: 10px;
+            background-color: #fdf2f2; padding: 12px; border-radius: 6px; border-left: 4px solid #e74c3c;
+        }
+        .note-highlight { color: #d35400; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>圖片數位化：空間採樣與色彩量化</h2>
+    <div class="subtitle">理解解析度 (Spatial Resolution) 與位元深度 (Bit Depth) 的互動關係</div>
+
+    <div class="container">
+        <div class="box canvas-container">
+            <span class="canvas-label">原始類比影像 (Analog/Original)</span>
+            <canvas id="originalCanvas"></canvas>
+            <input type="file" id="imageLoader" accept="image/*" style="display:none;">
+            <button id="uploadBtn" onclick="document.getElementById('imageLoader').click()">📷 上傳自訂圖片進行測試</button>
+            <div style="margin: 20px 0; border-top: 2px dashed #eee;"></div>
+            <span class="canvas-label">數位化重構影像 (Digital Result)</span>
+            <canvas id="resultCanvas"></canvas>
+            <button id="compareBtn">👁️ 按住對比原始影像</button>
+        </div>
+
+        <div class="box controls">
+            <div class="control-group">
+                <label>1. 空間解析度 (採樣): <span id="resolutionVal" class="value-display"></span></label>
+                <input type="range" id="resolutionSlider" min="2" max="256" value="32">
+                <small style="color: #7f8c8d;">這代表畫面被橫向與縱向切割的方格數。</small>
+            </div>
+            
+            <div class="control-group">
+                <label>2. 色彩位元深度 (量化): <span id="colorDepthVal" class="value-display"></span></label>
+                <input type="range" id="colorDepthSlider" min="1" max="8" value="3">
+                <div id="bitExplanation" style="font-size: 0.9em; margin-top: 5px; color: #2c3e50;"></div>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label" style="color: #8e44ad;">
+                    <input type="checkbox" id="grayscaleToggle"> 轉換為「灰階模式」
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="gridToggle" checked> 顯示網格線 (輔助觀察空間切割)
+                </label>
+            </div>
+
+            <div class="warning-text">
+                <strong>💡 教學註記：</strong><br>
+                <span id="logicNote">正在計算量化邏輯...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const originalCanvas = document.getElementById('originalCanvas');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const originalCtx = originalCanvas.getContext('2d', { willReadFrequently: true });
+        const resultCtx = resultCanvas.getContext('2d');
+        const imageLoader = document.getElementById('imageLoader');
+        const resSlider = document.getElementById('resolutionSlider');
+        const colSlider = document.getElementById('colorDepthSlider');
+        const gridToggle = document.getElementById('gridToggle');
+        const grayscaleToggle = document.getElementById('grayscaleToggle');
+        const compareBtn = document.getElementById('compareBtn');
+        const bitExp = document.getElementById('bitExplanation');
+        const logicNote = document.getElementById('logicNote');
+
+        let originalImage = new Image();
+        const displaySize = 400; 
+        let isCompareMode = false;
+
+        originalCanvas.width = displaySize;
+        originalCanvas.height = displaySize;
+        resultCanvas.width = displaySize;
+        resultCanvas.height = displaySize;
+
+        function init() {
+            const grad = originalCtx.createLinearGradient(0, 0, displaySize, displaySize);
+            grad.addColorStop(0, "#00ffff");
+            grad.addColorStop(0.5, "#ff00ff");
+            grad.addColorStop(1, "#ffff00");
+            originalCtx.fillStyle = grad;
+            originalCtx.fillRect(0, 0, displaySize, displaySize);
+            originalImage.src = originalCanvas.toDataURL();
+            originalImage.onload = () => processImage();
+        }
+
+        imageLoader.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const ratio = Math.min(displaySize / img.width, displaySize / img.height);
+                    const nw = img.width * ratio, nh = img.height * ratio;
+                    const ox = (displaySize - nw) / 2, oy = (displaySize - nh) / 2;
+                    originalCtx.fillStyle = "white";
+                    originalCtx.fillRect(0, 0, displaySize, displaySize);
+                    originalCtx.drawImage(img, ox, oy, nw, nh);
+                    originalImage = new Image();
+                    originalImage.onload = () => processImage();
+                    originalImage.src = originalCanvas.toDataURL();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function processImage() {
+            if (isCompareMode) return;
+
+            const res = parseInt(resSlider.value);
+            const bits = parseInt(colSlider.value);
+            const levels = Math.pow(2, bits);
+            const useGray = grayscaleToggle.checked;
+
+            document.getElementById('resolutionVal').innerText = `${res} × ${res}`;
+            document.getElementById('colorDepthVal').innerText = `${bits} Bit`;
+
+            // 動態顯示教學註記：統一灰階與彩色的呈現格式
+            if (useGray) {
+                bitExp.innerText = `亮度被量化為 2^${bits} = ${levels} 階。`;
+                let extraNote = (bits === 1) ? " (純黑與純白)" : " (由黑到白的漸層)";
+                logicNote.innerHTML = `灰階模式下，位元深度僅應用於單一「亮度」通道。<br>目前組合出的總顏色數為：<span class="note-highlight">${levels} 階亮度 ${extraNote}</span>。`;
+            } else {
+                bitExp.innerText = `R、G、B 每個通道各有 2^${bits} = ${levels} 階。`;
+                const totalColors = Math.pow(levels, 3);
+                logicNote.innerHTML = `彩色模式下，位元深度應用於 R、G、B 三個通道。<br>目前組合出的總顏色數為：<span class="note-highlight">${levels} (紅) × ${levels} (綠) × ${levels} (藍) = ${totalColors} 色</span>。`;
+            }
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = res;
+            tempCanvas.height = res;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImage, 0, 0, res, res);
+
+            const imgData = tempCtx.getImageData(0, 0, res, res);
+            const data = imgData.data;
+            const step = 256 / levels;
+
+            for (let i = 0; i < data.length; i += 4) {
+                if (useGray) {
+                    let gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                    let qGray = Math.round((gray / 255) * (levels - 1)) / (levels - 1) * 255;
+                    data[i] = data[i+1] = data[i+2] = qGray;
+                } else {
+                    data[i]   = Math.floor(data[i] / step) * step;
+                    data[i+1] = Math.floor(data[i+1] / step) * step;
+                    data[i+2] = Math.floor(data[i+2] / step) * step;
+                }
+            }
+            tempCtx.putImageData(imgData, 0, 0);
+
+            resultCtx.clearRect(0, 0, displaySize, displaySize);
+            resultCtx.imageSmoothingEnabled = false;
+            resultCtx.drawImage(tempCanvas, 0, 0, displaySize, displaySize);
+
+            if (gridToggle.checked) drawGrid(res);
+        }
+
+        function drawGrid(res) {
+            resultCtx.beginPath();
+            resultCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+            const s = displaySize / res;
+            for (let i = 1; i < res; i++) {
+                let p = Math.floor(i * s) + 0.5;
+                resultCtx.moveTo(p, 0); resultCtx.lineTo(p, displaySize);
+                resultCtx.moveTo(0, p); resultCtx.lineTo(displaySize, p);
+            }
+            resultCtx.stroke();
+        }
+
+        const startCompare = (e) => { e.preventDefault(); isCompareMode = true; resultCtx.drawImage(originalCanvas, 0, 0); };
+        const stopCompare = () => { isCompareMode = false; processImage(); };
+
+        compareBtn.addEventListener('mousedown', startCompare);
+        window.addEventListener('mouseup', stopCompare);
+        compareBtn.addEventListener('touchstart', startCompare);
+        window.addEventListener('touchend', stopCompare);
+
+        [resSlider, colSlider].forEach(el => el.addEventListener('input', processImage));
+        [gridToggle, grayscaleToggle].forEach(el => el.addEventListener('change', processImage));
+
+        init();
+    </script>
+</body>
+</html>
