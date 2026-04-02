@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB 色彩教學工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 顏色預覽區塊 */
+        #color-display {
+            width: 100%;
+            height: 150px;
+            border-radius: 8px;
+            background-color: rgb(0, 0, 0);
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            transition: background-color 0.05s ease;
+        }
+
+        /* 滑桿控制區塊 */
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* 利用 CSS 讓滑桿呈現對應顏色以增強教學效果 */
+        #r-slider { accent-color: #ff4d4d; }
+        #g-slider { accent-color: #4CAF50; }
+        #b-slider { accent-color: #2196F3; }
+
+        /* 數值輸出區塊 */
+        .output-section {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .output-text {
+            font-size: 18px;
+            font-family: monospace;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>RGB 色彩原理</h1>
+        
+        <div id="color-display"></div>
+
+        <div class="control-group">
+            <label for="r-slider">
+                <span style="color: #d32f2f;">Red (紅)</span> 
+                <span id="r-val">0</span>
+            </label>
+            <input type="range" id="r-slider" min="0" max="255" value="0">
+        </div>
+
+        <div class="control-group">
+            <label for="g-slider">
+                <span style="color: #388e3c;">Green (綠)</span> 
+                <span id="g-val">0</span>
+            </label>
+            <input type="range" id="g-slider" min="0" max="255" value="0">
+        </div>
+
+        <div class="control-group">
+            <label for="b-slider">
+                <span style="color: #1976d2;">Blue (藍)</span> 
+                <span id="b-val">0</span>
+            </label>
+            <input type="range" id="b-slider" min="0" max="255" value="0">
+        </div>
+
+        <div class="output-section">
+            <div class="output-text">RGB: <span id="rgb-output">rgb(0, 0, 0)</span></div>
+            <div class="output-text">HEX: <span id="hex-output">#000000</span></div>
+        </div>
+    </div>
+
+    <script>
+        // 取得 DOM 元素
+        const rSlider = document.getElementById('r-slider');
+        const gSlider = document.getElementById('g-slider');
+        const bSlider = document.getElementById('b-slider');
+        
+        const rVal = document.getElementById('r-val');
+        const gVal = document.getElementById('g-val');
+        const bVal = document.getElementById('b-val');
+        
+        const colorDisplay = document.getElementById('color-display');
+        const rgbOutput = document.getElementById('rgb-output');
+        const hexOutput = document.getElementById('hex-output');
+
+        // 將 10 進位數字轉換為 16 進位字串，並補齊兩位數
+        function toHex(value) {
+            const hex = parseInt(value).toString(16).toUpperCase();
+            return hex.length === 1 ? '0' + hex : hex;
+        }
+
+        // 更新顏色與數值的函數
+        function updateColor() {
+            const r = rSlider.value;
+            const g = gSlider.value;
+            const b = bSlider.value;
+
+            // 更新滑桿旁的即時數字
+            rVal.textContent = r;
+            gVal.textContent = g;
+            bVal.textContent = b;
+
+            // 產生 RGB 與 HEX 字串
+            const rgbString = `rgb(${r}, ${g}, ${b})`;
+            const hexString = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+
+            // 渲染至畫面
+            colorDisplay.style.backgroundColor = rgbString;
+            rgbOutput.textContent = rgbString;
+            hexOutput.textContent = hexString;
+        }
+
+        // 綁定 input 事件，讓滑動時能即時更新
+        rSlider.addEventListener('input', updateColor);
+        gSlider.addEventListener('input', updateColor);
+        bSlider.addEventListener('input', updateColor);
+
+        // 頁面載入時初始化一次顏色
+        updateColor();
+    </script>
+</body>
+</html>
